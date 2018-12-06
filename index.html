@@ -117,43 +117,11 @@
                 }
             };
 
-            let onNearScroll = () => {
-                let scrollTop = viewport.scrollTop;
-
-                // next page
-                if (scrollTop + offset > (page + 1) * ph) {
-                    page++;
-                    offset = Math.round(page * cj);
-                    prevScrollTop = scrollTop - cj;
-                    viewport.scrollTop = prevScrollTop;
-                    removeAllRows();
-                }
-                // prev page
-                else if (scrollTop + offset < page * ph) {
-                    page--;
-                    offset = Math.round(page * cj);
-                    prevScrollTop = scrollTop + cj;
-                    viewport.scrollTop = prevScrollTop;
-                    removeAllRows();
-                }
-                else
-                    prevScrollTop = scrollTop;
-            };
-
-            let onJump = () => {
-                let scrollTop = viewport.scrollTop;
-                page = Math.floor(scrollTop * ((th - vp) / (h - vp)) * (1 / ph));
-                offset = Math.round(page * cj);
-                prevScrollTop = scrollTop;
-
-                removeAllRows();
-            };
-
             let renderRow = (row) => {
                 let div = document.createElement('div');
                 div.style = `top: ${row * rh - offset}px; height: ${rh}px;`;
-                div.style.top = row * rh - offset + 'px';
-                div.style.height = rh + 'px';
+                /* div.style.top = row * rh - offset + 'px';
+                div.style.height = rh + 'px'; */
                 console.log(div.outerHTML);
                 div.classList.add('row');
                 div.innerHTML = `<p>row ${row}</p>`;
@@ -206,10 +174,33 @@
             let onScroll = () => {
                 let scrollTop = viewport.scrollTop;
 
-                if (Math.abs(scrollTop - prevScrollTop) > vp)
-                    onJump();
-                else
-                    onNearScroll();
+                if (Math.abs(scrollTop - prevScrollTop) > vp){
+                    page = Math.floor(scrollTop * ((th - vp) / (h - vp)) * (1 / ph));
+                    offset = Math.round(page * cj);
+                    prevScrollTop = scrollTop;
+
+                    removeAllRows();
+                }
+                else{
+                    // next page
+                    if (scrollTop + offset > (page + 1) * ph) {
+                        page++;
+                        offset = Math.round(page * cj);
+                        prevScrollTop = scrollTop - cj;
+                        viewport.scrollTop = prevScrollTop;
+                        removeAllRows();
+                    }
+                    // prev page
+                    else if (scrollTop < page * ph) {
+                        page--;
+                        offset = Math.round(page * cj);
+                        prevScrollTop = scrollTop + cj;
+                        viewport.scrollTop = prevScrollTop;
+                        removeAllRows();
+                    }
+                    else
+                        prevScrollTop = scrollTop;
+                }
 
                 renderViewport();
                 logDebugInfo();
