@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="height=device-height, initial-scale=1.0" />
+        <!-- <link rel="stylesheet" href="styles/styles.css" media="screen" /> -->
+        <style>
+            html {
+                font-family: "Segoe UI";
+                line-height: 1.25;
+            }
+
+            html,
+            body {
+                height: 100%;
+                width: 100%;
+                padding: 0px;
+                margin: 0px;
+            }
+
+
+
+            .cont {
+                display: grid;
+                grid-template-columns: 50% 50%;
+                grid-template-areas: "left right";
+                height: 100vh;
+                width: 100vw;
+            }
+
+            .left {
+                grid-area: left;
+                margin: 1rem;
+                padding: 0rem;
+            }
+
+            .right {
+                grid-area: right;
+                margin: 1rem;
+                padding: 1.2rem;
+            }
+
+            #debug {
+                background: beige;
+                opacity: 0.5;
+                border: 1px solid gray;
+            }
+
+            #viewport {
+                border: 1px solid black;
+                overflow: auto;
+            }
+
+            #content {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .row {
+                position: absolute;
+                left: 0px;
+                width: 100%;
+                align-content: center;
+                align-items: center;
+                vertical-align: middle;
+                text-align: center;
+            }
+
+            .row:hover {
+                background: rgba(0, 0, 255, 0.05);
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="cont">
+            <div id="viewport" class="left">
+                <div id="content">
+                </div>
+            </div>
+            <div id="debug" class="right">
+            </div>
+        </div>
+        <script>
+            let logDebugInfo = () => {
+                let dbg = document.getElementById("debug")
+                dbg.innerText = "";
+                dbg.innerHTML = `
+                <p>
+                n = ${n} <br>
+                ph = ${ph} <br>
+                cj = ${cj} <br>
+                </p>
+                <hr>
+                <p>
+                vp = ${vp} <br>
+                h = ${h} <br>
+                </p>
+                <hr>
+                <p>
+                page = ${page} <br>
+                offset = ${offset} <br>
+                virtual y = ${(prevScrollTop + offset)} <br>
+                real y = ${prevScrollTop} <br>
+                rows in the DOM = ${document.getElementsByClassName("row").length} <br>
+                </p>
+                `;
+            };
+
+            let removeAllRows = () => {
+                for (let i in rows) {
+                    rows[i].remove();
+                    delete rows[i];
+                }
+            };
+
+            let onNearScroll = () => {
+                let scrollTop = viewport.scrollTop;
+
+                // next page
+                if (scrollTop + offset > (page + 1) * ph) {
+                    page++;
+                    offset = Math.round(page * cj);
+                    viewport.scrollTop = prevScrollTop = scrollTop - cj;
+                    removeAllRows();
+                }
+                // prev page
+                else if (scrollTop + offset < page * ph) {
+                    page--;
+                    offset = Math.round(page * cj);
+                    viewport.scrollTop = prevScrollTop = scrollTop + cj;
+                    removeAllRows();
+                }
+                else
+                    prevScrollTop = scrollTop;
+            };
+
+            let onJump = () => {
+                let scrollTop = viewport.scrollTop;
+                page = Math.floor(scrollTop * ((th - vp) / (h - vp)) * (1 / ph));
+                offset = Math.round(page * cj);
+                prevScrollTop = scrollTop;
+
+                removeAllRows();
+            };
+
+            let renderRow = (row) => {
+                let div = document.createElement('div');
+                div.style = `top: ${row * rh - offset}; height: ${rh};`;
+                div.style.top = row * rh - offset + 'px';
+                div.style.height = rh + 'px';
+                console.log(div.outerHTML);
+                div.classList.add('row');
+                div.innerHTML = `<p>row ${row}</p>`;
+                content.appendChild(div);
+                return div;
+            };
+
+            let renderViewport = () => {
+                // calculate the viewport + buffer
+                let y = viewport.scrollTop + offset,
+                    buffer = vp,
+                    top = Math.floor((y - buffer) / rh),
+                    bottom = Math.ceil((y + vp + buffer) / rh);
+
+                top = Math.max(0, top);
+                bottom = Math.min(th / rh, bottom);
+
+                // remove rows no longer in the viewport
+                for (let i in rows) {
+                    if (i < top || i > bottom) {
+                        rows[i].remove();
+                        delete rows[i];
+                    }
+                }
+
+                // add new rows
+                for (let i = top; i <= bottom; i++) {
+                    if (!rows[i])
+                        rows[i] = renderRow(i);
+                }
+            };
+
+
+            let th = 1000000000;            // virtual height
+            let h = 1000000;               // real scrollable height
+            let ph = h / 100;               // page height
+            let n = Math.ceil(th / ph);     // number of pages
+            let vp = 0;                   // viewport height
+            let rh = 50;                    // row height
+            let cj = (th - h) / (n - 1);    // "jumpiness" coefficient
+
+            let page = 0;                   // current page
+            let offset = 0;                   // current page offset
+            let prevScrollTop = 0;
+
+            let rows = {};                  // cached row nodes
+
+            let viewport, content;
+
+            let onScroll = () => {
+                let scrollTop = viewport.scrollTop;
+
+                if (Math.abs(scrollTop - prevScrollTop) > vp)
+                    onJump();
+                else
+                    onNearScroll();
+
+                renderViewport();
+                logDebugInfo();
+            };
+
+            let windowResize = () => {
+                vp = viewport.clientHeight;
+                logDebugInfo();
+            };
+
+            let onLoad = () => {
+                viewport = document.getElementById("viewport");
+                content = document.getElementById("content");
+                content.style.height = h + 'px';
+
+                window.onresize = windowResize;
+                windowResize();
+                viewport.onscroll = onScroll;
+                onScroll();
+            };
+
+            window.onload = onLoad;
+        </script>
+    </body>
+
+</html>
