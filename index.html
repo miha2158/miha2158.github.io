@@ -191,7 +191,7 @@
                         removeAllRows();
                     }
                     // prev page
-                    else if (scrollTop < page * ph) {
+                    else if (scrollTop - offset < page * ph) {
                         page--;
                         offset = Math.round(page * cj);
                         prevScrollTop = scrollTop + cj;
