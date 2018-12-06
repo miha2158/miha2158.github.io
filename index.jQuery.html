@@ -7,14 +7,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="viewport" content="height=device-height, initial-scale=1.0" />
         <!-- <link rel="stylesheet" href="styles/styles.css" media="screen" /> -->
+        <script src="../jquery.js"></script>
         <style>
+
             html {
                 font-family: "Segoe UI";
                 line-height: 1.25;
             }
 
-            html,
-            body {
+            html, body {
                 height: 100%;
                 width: 100%;
                 padding: 0px;
@@ -86,28 +87,22 @@
         </div>
         <script>
             let logDebugInfo = () => {
-                let dbg = document.getElementById("debug")
-                dbg.innerText = "";
-                dbg.innerHTML = `
-                <p>
+                let dbg = $("#debug");
+                dbg.empty();
+                dbg.append(`
                 n = ${n} <br>
                 ph = ${ph} <br>
                 cj = ${cj} <br>
-                </p>
                 <hr>
-                <p>
                 vp = ${vp} <br>
                 h = ${h} <br>
-                </p>
                 <hr>
-                <p>
                 page = ${page} <br>
                 offset = ${offset} <br>
                 virtual y = ${(prevScrollTop + offset)} <br>
                 real y = ${prevScrollTop} <br>
-                rows in the DOM = ${document.getElementsByClassName("row").length} <br>
-                </p>
-                `;
+                rows in the DOM = ${$(".row").length} <br>
+                `);
             };
 
             let removeAllRows = () => {
@@ -118,22 +113,20 @@
             };
 
             let onNearScroll = () => {
-                let scrollTop = viewport.scrollTop;
+                let scrollTop = viewport.scrollTop();
 
                 // next page
                 if (scrollTop + offset > (page + 1) * ph) {
                     page++;
                     offset = Math.round(page * cj);
-                    prevScrollTop = scrollTop - cj;
-                    viewport.scrollTop = prevScrollTop;
+                    viewport.scrollTop(prevScrollTop = scrollTop - cj);
                     removeAllRows();
                 }
                 // prev page
                 else if (scrollTop + offset < page * ph) {
                     page--;
                     offset = Math.round(page * cj);
-                    prevScrollTop = scrollTop + cj;
-                    viewport.scrollTop = prevScrollTop;
+                    viewport.scrollTop(prevScrollTop = scrollTop + cj);
                     removeAllRows();
                 }
                 else
@@ -141,7 +134,7 @@
             };
 
             let onJump = () => {
-                let scrollTop = viewport.scrollTop;
+                let scrollTop = viewport.scrollTop();
                 page = Math.floor(scrollTop * ((th - vp) / (h - vp)) * (1 / ph));
                 offset = Math.round(page * cj);
                 prevScrollTop = scrollTop;
@@ -150,20 +143,18 @@
             };
 
             let renderRow = (row) => {
-                let div = document.createElement('div');
-                div.style = `top: ${row * rh - offset}px; height: ${rh}px;`;
-                div.style.top = row * rh - offset + 'px';
-                div.style.height = rh + 'px';
-                console.log(div.outerHTML);
-                div.classList.add('row');
-                div.innerHTML = `<p>row ${row}</p>`;
-                content.appendChild(div);
-                return div;
+                return $("<div class='row' />")
+                    .css({
+                        top: row * rh - offset,
+                        height: rh
+                    })
+                    .append(`<p>row ${row}</p>`)
+                    .appendTo(content);
             };
 
             let renderViewport = () => {
                 // calculate the viewport + buffer
-                let y = viewport.scrollTop + offset,
+                let y = viewport.scrollTop() + offset,
                     buffer = vp,
                     top = Math.floor((y - buffer) / rh),
                     bottom = Math.ceil((y + vp + buffer) / rh);
@@ -186,6 +177,19 @@
                 }
             };
 
+            let onScroll = () => {
+                let scrollTop = viewport.scrollTop();
+
+                if (Math.abs(scrollTop - prevScrollTop) > vp)
+                    onJump();
+                else
+                    onNearScroll();
+
+                renderViewport();
+
+                logDebugInfo();
+            };
+
 
             let th = 1000000000;            // virtual height
             let h = 1000000;               // real scrollable height
@@ -203,35 +207,23 @@
 
             let viewport, content;
 
-            let onScroll = () => {
-                let scrollTop = viewport.scrollTop;
-
-                if (Math.abs(scrollTop - prevScrollTop) > vp)
-                    onJump();
-                else
-                    onNearScroll();
-
-                renderViewport();
-                logDebugInfo();
-            };
-
             let windowResize = () => {
-                vp = viewport.clientHeight;
+                vp = viewport.height();
                 logDebugInfo();
             };
 
-            let onLoad = () => {
-                viewport = document.getElementById("viewport");
-                content = document.getElementById("content");
-                content.style.height = h + 'px';
+            $(() => {
+                viewport = $("#viewport");
+                content = $("#content");
+
+                vp = viewport.height();
+                content.css("height", h);
 
                 window.onresize = windowResize;
-                windowResize();
-                viewport.onscroll = onScroll;
-                onScroll();
-            };
-
-            window.onload = onLoad;
+                viewport.scroll(onScroll);
+                viewport.trigger("scroll");
+            });
+            //TODO: rewrite in pure JS
         </script>
     </body>
 
