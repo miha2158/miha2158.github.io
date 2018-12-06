@@ -54,14 +54,3 @@ html {
     font-family: "Open Sans";
     line-height: 1.25rem;
 }
-
-html,
-body {
-    padding: 0px;
-    margin: 0px;
-}
-
-.cont {
-    margin: 1rem;
-    padding: 1rem;
-}
